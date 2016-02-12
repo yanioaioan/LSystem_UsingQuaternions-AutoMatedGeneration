@@ -2,12 +2,6 @@ import math,copy
 import maya.cmds as mc
 import time
 
-'''
-#tree like structure
-rules = {'F': 'FAF[vFA[FA]^F]'}
-axiom = 'F+vF'
-iterations = 3
-'''
 
 '''
 Alphabet : A, B
@@ -18,31 +12,31 @@ Production rules:
         A ? ? B F + A F A + F B ?
         B ? + A F ? B F B ? F A +
 
-Here, "F" means "draw forward", "?" means "turn left 90°", "+" means "turn right 90°" (see turtle graphics), and "A" and "B" are ignored during drawing.
+Here, "F" means "draw forward", "?" means "turn left 90Â°", "+" means "turn right 90Â°" (see turtle graphics), and "A" and "B" are ignored during drawing.
 '''
 
 
-'''
-#Hilbert space-filling curve 2D - maya specific implementation
-rules = {'A': 'BF^AFA^FBv',  'B': 'AFvBFBvFA^'}
-axiom = 'A'
-iterations = 5
-'''
 
 
 #Quadratic Koch curve
-#F ? F+F-F-F+F
+#F -> F+F-F-F+F
 rules = {'F': 'F<F>F>F<F'}
 axiom = 'F'
-iterations = 4
+iterations = 3
 
+
+#Tree like Structure
+#'F':'FFFA[F[vFF<FF][F[FF^FAvFA]>F+FF-AF[-FvAF]<FA]<F]', 'A':'FAF'
+#rules = {'F':'FFFA[F[vFF<FF][F[FF^FAvFA]>F+FF-AF[-FvAF]<FA]<F]', 'A':'FAF'}
+#axiom = 'F'
+#iterations = 2
 
 '''
 #Peano curve curve
 #F ? F+F-F-F-F+F+F+F-F
 rules = {'F': 'F^FvFvFvF^F^F^FvF'}
 axiom = 'F'
-iterations = 3
+iterations = 2
 '''
 
 
@@ -51,7 +45,7 @@ iterations = 3
 #L ? +RF-LFL-FR+ , R ? -LF+RFR+FL
 rules = {'L': 'vRF^LFL^FRv', 'R': '^LFvRFRvFL'}
 axiom = 'L'
-iterations = 6
+iterations = 2
 '''
 
 '''
@@ -59,10 +53,10 @@ iterations = 6
 #n = 6
 #axiom = FXF++FF++FF
 #rule = F ? FF , X ? ++FXF--FXF--FXF++
-#ä = 60°
+#Ã¤ = 60Â°
 rules = {'F' : 'FF' , 'X' : '^^FXFvvFXFvvFXF^^'}
 axiom = 'FXF^^FF^^FF'
-iterations = 6
+iterations = 4
 '''
 
 fixedAngle=90
@@ -116,21 +110,13 @@ def createABranch(rotAxis, angle):
     bottom = [(bbox[0]+bbox[3])/2, bbox[1], (bbox[2]+bbox[5])/2] #(xmin,xmax)/2 , (zmin,zmax)/2
     #now set pivot to the bottom of the cylinder
     mc.xform(branch[0], piv=bottom, ws=True, r=True)
-    #cmds.refresh()
+    cmds.refresh()
     #time.sleep(1)
     
-    global pushFlag,popFlag
-    if pushFlag==True:
-        branchStackPos.append(prevPos)
-        branchStackRot.append(prevRot)
-        pushFlag=False
-        
-        
-    if popFlag==True:
-        prevPos=branchStackPos.pop()
-        prevRot=branchStackRot.pop()
-        popFlag=False
-        
+    
+    print "branchStackPos=%s"%(branchStackPos)    
+    
+    #print "myposUsed=%s"%(prevPos)    
         
     mypos=prevPos
     myrot=prevRot
@@ -142,7 +128,7 @@ def createABranch(rotAxis, angle):
     
     '''Move cylinder to the current position & the current rotation'''
     mc.xform( rotation=myrot, translation=mypos)    
-    #cmds.refresh()
+    cmds.refresh()
     #time.sleep(1)
     
     
@@ -155,14 +141,14 @@ def createABranch(rotAxis, angle):
     '''Store this new branch position'''    
     prevPos=mc.xform( query=True, translation=True, worldSpace=True)#keeps the previous position
             
-    #cmds.refresh()
+    cmds.refresh()
     #time.sleep(1)
     
     '''Rotate and Store rotation'''
     mc.rotate( toDegrees(euAngles[0]), toDegrees(euAngles[1]), toDegrees(euAngles[2]), branch[0], r=True ) #perform relative rotation       
     prevRot=mc.xform( query=True, rotation=True, worldSpace=True)#keeps the previous rotated degree angles
     
-    #cmds.refresh()
+    cmds.refresh()
     #time.sleep(1)
     
     setAngle(0)
@@ -170,14 +156,26 @@ def createABranch(rotAxis, angle):
     
     
 def push( *pArgs):
-	global pushFlag
+	global pushFlag,prevPos,prevRot
 	pushFlag=True
+	
+	if pushFlag==True:
+	    branchStackPos.append(prevPos)
+	    branchStackRot.append(prevRot)
+	    pushFlag=False
+	    
+
 
 def pop( *pArgs):
-	global popFlag
-	popFlag=True
-	
-	
+    global popFlag,prevPos,prevRot
+    popFlag=True
+    
+    if popFlag==True:
+        prevPos=branchStackPos.pop()
+        prevRot=branchStackRot.pop()
+        popFlag=False
+        
+    	
 	
 
 '''Choose rot axis'''
@@ -196,8 +194,42 @@ def setRotAxis(axis, *pArgs):
 def setAngle(angl,*pArgs):
     global genericLSysAngle
     genericLSysAngle=angl
-    print angl
-	
+    #print angl
+
+
+
+
+
+#rotate about x or y or z axis using an angle (could be used for 3d L-System without matrices)
+def toDegrees(radangle):
+    return radangle*180/math.pi
+    
+def rotateAbout(rotAboutAxis, genericLSysAngle):
+    
+    #rotAboutAxis = [1,0,0]#we know what axis we want to rotate about
+    myangle=genericLSysAngle * math.pi/180 ##we know our angle and transform it to radians
+    '''Quaternion built'''
+    qx = rotAboutAxis[0] * math.sin(myangle/2)
+    qy = rotAboutAxis[1] * math.sin(myangle/2)
+    qz = rotAboutAxis[2] * math.sin(myangle/2)
+    qw = math.cos(myangle/2)
+    Q=[qx,qy,qz,qw]
+    return  Q
+
+def EulerAnglesFromAxisQuat(rotAboutAxis, genericLSysAngle):
+    qx,qy,qz,qw = rotateAbout(rotAboutAxis, genericLSysAngle)
+    
+    '''Yaw Pitch Roll calculation from quaternion'''
+    heading = math.atan2(2*qy*qw-2*qx*qz , 1 - 2*qy*qy - 2*qz*qz)#z
+    attitude = math.asin(2*qx*qy+2*qz*qw)#y
+    bank = math.atan2(2*qx*qw-2*qy*qz , 1 - 2*qx*qx - 2*qz*qz)# Attention this is euler angle X ..not z
+    
+    angles=[bank,heading,attitude]
+    
+    #print "angles=%s"%(angles)
+    
+    return angles
+    
 
 def createUI():
     
@@ -233,7 +265,7 @@ def createUI():
 for c in m_string:
     cmds.delete(ch=True)#delete construction history
     if c == 'F':
-        print "genericLSysAngle=%s"%(genericLSysAngle)        
+        #print "genericLSysAngle=%s"%(genericLSysAngle)        
         createABranch(rotAxis,genericLSysAngle)               
     if c == 'v':        
 	    #rotateX
@@ -260,43 +292,14 @@ for c in m_string:
         setRotAxis(3)
         setAngle(-fixedAngle)
     if c == '[':
-        push()        
+        push()
+        print "mypos_PUSHED=%s"%(prevPos)        
     if c == ']':
         pop()
+        print "mypos_POPPED=%s"%(prevPos)
         setAngle(0)
         
         
 
-
-
-#rotate about x or y or z axis using an angle (could be used for 3d L-System without matrices)
-def toDegrees(radangle):
-    return radangle*180/math.pi
-    
-def rotateAbout(rotAboutAxis, genericLSysAngle):
-    
-    #rotAboutAxis = [1,0,0]#we know what axis we want to rotate about
-    myangle=genericLSysAngle * math.pi/180 ##we know our angle and transform it to radians
-    '''Quaternion built'''
-    qx = rotAboutAxis[0] * math.sin(myangle/2)
-    qy = rotAboutAxis[1] * math.sin(myangle/2)
-    qz = rotAboutAxis[2] * math.sin(myangle/2)
-    qw = math.cos(myangle/2)
-    Q=[qx,qy,qz,qw]
-    return  Q
-
-def EulerAnglesFromAxisQuat(rotAboutAxis, genericLSysAngle):
-    qx,qy,qz,qw = rotateAbout(rotAboutAxis, genericLSysAngle)
-    
-    '''Yaw Pitch Roll calculation from quaternion'''
-    heading = math.atan2(2*qy*qw-2*qx*qz , 1 - 2*qy*qy - 2*qz*qz)#z
-    attitude = math.asin(2*qx*qy+2*qz*qw)#y
-    bank = math.atan2(2*qx*qw-2*qy*qz , 1 - 2*qx*qx - 2*qz*qz)# Attention this is euler angle X ..not z
-    
-    angles=[bank,heading,attitude]
-    
-    #print "angles=%s"%(angles)
-    
-    return angles
 
 #createUI()
