@@ -260,7 +260,8 @@ def createUI():
     
 
 createUI()
-    
+
+'''USE THIS TO GENERATE A Quadratic Koch curve EXAMPLE''' 
 '''
 for c in m_string:
     cmds.delete(ch=True)#delete construction history
