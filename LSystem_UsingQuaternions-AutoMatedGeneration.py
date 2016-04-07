@@ -187,14 +187,14 @@ def setRotAxis(axis, *pArgs):
 	    rotAxis=[0,1,0]#world rotation axis
 	elif axis==3:
 	    rotAxis=[0,0,1]#world rotation axis
-	#print rotAxis
+	print rotAxis
 	 
 	
 '''Choose rot angle'''
 def setAngle(angl,*pArgs):
     global genericLSysAngle
     genericLSysAngle=angl
-    #print angl
+    print angl
 
 
 
@@ -259,9 +259,9 @@ def createUI():
     cmds.showWindow()
     
 
-#createUI()
+createUI()
     
-
+'''
 for c in m_string:
     cmds.delete(ch=True)#delete construction history
     if c == 'F':
@@ -298,8 +298,4 @@ for c in m_string:
         pop()
         print "mypos_POPPED=%s"%(prevPos)
         setAngle(0)
-        
-        
-
-
-#createUI()
+'''      
